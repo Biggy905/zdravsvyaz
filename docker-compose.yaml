@@ -1,0 +1,58 @@
+version: "3.8"
+
+services:
+  zdravsvyaz-nginx:
+    container_name: zdravsvyaz-nginx
+    image: nginx:stable-alpine
+    volumes:
+      - ./:/app
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - "${URL_WEB_PORT}:80"
+    depends_on:
+      - zdravsvyaz-php-fpm
+    restart: unless-stopped
+
+  zdravsvyaz-php-fpm:
+    container_name: zdravsvyaz-php-fpm
+    build:
+      context: .
+      dockerfile: docker/php-fpm/Dockerfile
+    volumes:
+      - ./:/app
+    depends_on:
+      - zdravsvyaz-mysql
+
+  zdravsvyaz-php-cli:
+    container_name: zdravsvyaz-php-cli
+    build:
+      context: .
+      dockerfile: docker/php-cli/Dockerfile
+    volumes:
+      - ./:/app
+    depends_on:
+      - zdravsvyaz-mysql
+
+  zdravsvyaz-mysql:
+    container_name: zdravsvyaz-mysql
+    build:
+      context: .
+      dockerfile: docker/mysql/Dockerfile
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_ROOT_USER: ${DB_USER}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_HOST: "%"
+    ports:
+      - "3306:3306"
+    volumes:
+      - zdravsvyaz-mysql-db-data:/bitnami/mysql/data
+    restart: unless-stopped
+
+networks:
+  default:
+    external: true
+    name: zdravsvyaz-network
+
+volumes:
+  zdravsvyaz-mysql-db-data:
